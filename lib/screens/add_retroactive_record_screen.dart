@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 import '../models/company.dart';
+import '../models/project.dart';
 
 class AddRetroactiveRecordScreen extends StatefulWidget {
   const AddRetroactiveRecordScreen({super.key});
@@ -18,6 +19,7 @@ class _AddRetroactiveRecordScreenState
   TimeOfDay _selectedTime = TimeOfDay.now();
   String _selectedType = 'entrada';
   Company? _selectedCompany;
+  Project? _selectedProject;
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -137,6 +139,40 @@ class _AddRetroactiveRecordScreenState
                           });
                         },
                       ),
+                      if (_selectedCompany != null) ...[
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<Project>(
+                          value: _selectedProject,
+                          decoration: InputDecoration(
+                            hintText: 'Selecione um projeto',
+                            prefixIcon: Icon(
+                              Icons.folder_outlined,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Theme.of(context)
+                                .primaryColor
+                                .withOpacity(0.05),
+                          ),
+                          items: provider
+                              .getProjectsByCompany(_selectedCompany!.id)
+                              .map((project) {
+                            return DropdownMenuItem(
+                              value: project,
+                              child: Text(project.name),
+                            );
+                          }).toList(),
+                          onChanged: (project) {
+                            setState(() {
+                              _selectedProject = project;
+                            });
+                          },
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -282,7 +318,8 @@ class _AddRetroactiveRecordScreenState
                 const SizedBox(height: 32),
                 // Botão de Salvar
                 ElevatedButton(
-                  onPressed: _selectedCompany == null
+                  onPressed: _selectedCompany == null ||
+                          _selectedProject == null
                       ? null
                       : () async {
                           try {
@@ -302,9 +339,7 @@ class _AddRetroactiveRecordScreenState
 
                             await provider.addRetroactiveRecord(
                               _selectedCompany!,
-                              provider
-                                  .getProjectsByCompany(_selectedCompany!.id)
-                                  .first,
+                              _selectedProject!,
                               _selectedType,
                               _selectedDate,
                               position.latitude,

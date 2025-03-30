@@ -302,6 +302,9 @@ class _AddRetroactiveRecordScreenState
 
                             await provider.addRetroactiveRecord(
                               _selectedCompany!,
+                              provider
+                                  .getProjectsByCompany(_selectedCompany!.id)
+                                  .first,
                               _selectedType,
                               _selectedDate,
                               position.latitude,

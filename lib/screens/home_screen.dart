@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../widgets/hold_button.dart';
 import '../models/company.dart';
+import '../models/project.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -103,8 +104,42 @@ class HomeScreen extends StatelessWidget {
                             }).toList(),
                             onChanged: (company) {
                               provider.setSelectedCompany(company);
+                              provider.setSelectedProject(null);
                             },
                           ),
+                          if (provider.selectedCompany != null) ...[
+                            const SizedBox(height: 16),
+                            DropdownButtonFormField<Project>(
+                              value: provider.selectedProject,
+                              decoration: InputDecoration(
+                                hintText: 'Selecione um projeto',
+                                prefixIcon: Icon(
+                                  Icons.folder_outlined,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(context)
+                                    .primaryColor
+                                    .withOpacity(0.05),
+                              ),
+                              items: provider
+                                  .getProjectsByCompany(
+                                      provider.selectedCompany!.id)
+                                  .map((project) {
+                                return DropdownMenuItem(
+                                  value: project,
+                                  child: Text(project.name),
+                                );
+                              }).toList(),
+                              onChanged: (project) {
+                                provider.setSelectedProject(project);
+                              },
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -185,9 +220,7 @@ class HomeScreen extends StatelessWidget {
                           children: [
                             HoldButton(
                               isEntry: isEntry,
-                              onComplete: () => provider.markTime(
-                                isEntry ? 'entrada' : 'saida',
-                              ),
+                              onComplete: () => provider.markTime(),
                             ),
                             const SizedBox(height: 24),
                             Container(

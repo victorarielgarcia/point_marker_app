@@ -160,6 +160,17 @@ class RecordsScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
+                              record.projectName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.color,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
                               'Lat: ${record.latitude.toStringAsFixed(6)}',
                               style: TextStyle(
                                 fontSize: 12,

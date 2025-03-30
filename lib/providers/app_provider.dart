@@ -4,30 +4,39 @@ import 'dart:convert';
 import 'dart:io';
 import '../models/company.dart';
 import '../models/time_record.dart';
+import '../models/project.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppProvider with ChangeNotifier {
   final LocationService _locationService = LocationService();
   final NotificationService _notificationService = NotificationService();
+  late SharedPreferences _storage;
   List<Company> _companies = [];
+  List<Project> _projects = [];
   List<TimeRecord> _timeRecords = [];
   Company? _selectedCompany;
+  Project? _selectedProject;
   bool _isLoading = false;
 
   List<Company> get companies => _companies;
+  List<Project> get projects => _projects;
   List<TimeRecord> get timeRecords => _timeRecords;
   Company? get selectedCompany => _selectedCompany;
+  Project? get selectedProject => _selectedProject;
   bool get isLoading => _isLoading;
 
   Future<void> initialize() async {
     _isLoading = true;
     notifyListeners();
 
+    _storage = await SharedPreferences.getInstance();
     await _notificationService.initialize();
     await _loadCompanies();
+    await _loadProjects();
     await _loadTimeRecords();
 
     _isLoading = false;
@@ -61,6 +70,22 @@ class AppProvider with ChangeNotifier {
     }
   }
 
+  Future<void> _loadProjects() async {
+    final prefs = await _storage;
+    final projectsJson = prefs.getString('projects');
+    if (projectsJson != null) {
+      final List<dynamic> decoded = json.decode(projectsJson);
+      _projects = decoded.map((json) => Project.fromJson(json)).toList();
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveProjects() async {
+    final prefs = await _storage;
+    final encoded = json.encode(_projects.map((p) => p.toJson()).toList());
+    await prefs.setString('projects', encoded);
+  }
+
   Future<void> _loadTimeRecords() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -91,6 +116,11 @@ class AppProvider with ChangeNotifier {
 
   void setSelectedCompany(Company? company) {
     _selectedCompany = company;
+    notifyListeners();
+  }
+
+  void setSelectedProject(Project? project) {
+    _selectedProject = project;
     notifyListeners();
   }
 
@@ -131,11 +161,40 @@ class AppProvider with ChangeNotifier {
     return companyRecords.last.type == 'saida';
   }
 
-  Future<void> markTime(String type) async {
+  Future<void> addProject(String name, String companyId) async {
+    final project = Project(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: name,
+      companyId: companyId,
+    );
+    _projects.add(project);
+    await _saveProjects();
+    notifyListeners();
+  }
+
+  Future<void> deleteProject(Project project) async {
+    _projects.removeWhere((p) => p.id == project.id);
+    await _saveProjects();
+    notifyListeners();
+  }
+
+  List<Project> getProjectsByCompany(String companyId) {
+    return _projects.where((p) => p.companyId == companyId).toList();
+  }
+
+  Future<void> markTime() async {
     if (_selectedCompany == null) {
       _notificationService.showErrorNotification(
         'Empresa não selecionada',
-        'Por favor, selecione uma empresa antes de marcar o ponto.',
+        'Selecione uma empresa antes de registrar o ponto.',
+      );
+      return;
+    }
+
+    if (_selectedProject == null) {
+      _notificationService.showErrorNotification(
+        'Projeto não selecionado',
+        'Selecione um projeto antes de registrar o ponto.',
       );
       return;
     }
@@ -145,7 +204,7 @@ class AppProvider with ChangeNotifier {
       if (position == null) {
         _notificationService.showErrorNotification(
           'Localização não disponível',
-          'Não foi possível obter sua localização. Verifique se o GPS está ativado.',
+          'Verifique se o GPS está ativado e tente novamente.',
         );
         return;
       }
@@ -154,7 +213,9 @@ class AppProvider with ChangeNotifier {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         companyId: _selectedCompany!.id,
         companyName: _selectedCompany!.name,
-        type: type,
+        projectId: _selectedProject!.id,
+        projectName: _selectedProject!.name,
+        type: shouldBeEntry() ? 'entrada' : 'saida',
         timestamp: DateTime.now(),
         latitude: position.latitude,
         longitude: position.longitude,
@@ -168,16 +229,66 @@ class AppProvider with ChangeNotifier {
 
       _notificationService.showSuccessNotification(
         'Ponto Registrado com Sucesso!',
-        '${type.toUpperCase()}\n${_selectedCompany!.name}\n$formattedDate\n$formattedTime',
+        '${record.type.toUpperCase()}\n${record.companyName}\n${record.projectName}\n$formattedDate\n$formattedTime',
+      );
+
+      showDialog(
+        context: navigatorKey.currentContext!,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Sucesso!',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${record.type.toUpperCase()}\n${record.companyName}\n${record.projectName}\n$formattedDate\n$formattedTime',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
 
       notifyListeners();
     } catch (e) {
+      debugPrint('Erro ao registrar ponto: $e');
       _notificationService.showErrorNotification(
         'Erro ao registrar ponto',
-        'Ocorreu um erro ao registrar seu ponto. Tente novamente.',
+        'Tente novamente mais tarde.',
       );
-      debugPrint('Erro ao registrar ponto: $e');
     }
   }
 
@@ -198,6 +309,7 @@ class AppProvider with ChangeNotifier {
 
   Future<void> addRetroactiveRecord(
     Company company,
+    Project project,
     String type,
     DateTime timestamp,
     double latitude,
@@ -208,6 +320,8 @@ class AppProvider with ChangeNotifier {
         id: timestamp.millisecondsSinceEpoch.toString(),
         companyId: company.id,
         companyName: company.name,
+        projectId: project.id,
+        projectName: project.name,
         type: type,
         timestamp: timestamp,
         latitude: latitude,
@@ -222,7 +336,7 @@ class AppProvider with ChangeNotifier {
 
       _notificationService.showSuccessNotification(
         'Registro Retroativo Adicionado!',
-        '${type.toUpperCase()}\n${company.name}\n$formattedDate\n$formattedTime',
+        '${type.toUpperCase()}\n${company.name}\n${project.name}\n$formattedDate\n$formattedTime',
       );
 
       notifyListeners();

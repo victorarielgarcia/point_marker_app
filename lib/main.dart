@@ -5,6 +5,7 @@ import 'providers/app_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/records_screen.dart';
 import 'screens/companies_screen.dart';
+import 'screens/projects_screen.dart';
 import 'screens/add_retroactive_record_screen.dart';
 
 void main() {
@@ -129,6 +130,7 @@ class _MainScreenState extends State<MainScreen> {
           HomeScreen(),
           RecordsScreen(),
           CompaniesScreen(),
+          ProjectsScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -153,6 +155,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.business_outlined),
             selectedIcon: Icon(Icons.business),
             label: 'Empresas',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.folder_outlined),
+            selectedIcon: Icon(Icons.folder),
+            label: 'Projetos',
           ),
         ],
       ),

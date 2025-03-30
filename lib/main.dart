@@ -5,6 +5,7 @@ import 'providers/app_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/records_screen.dart';
 import 'screens/companies_screen.dart';
+import 'screens/add_retroactive_record_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -119,83 +120,41 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const RecordsScreen(),
-    const CompaniesScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).dividerColor.withOpacity(0.1),
-            ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: const [
+          HomeScreen(),
+          RecordsScreen(),
+          CompaniesScreen(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Início',
           ),
-        ),
-        child: NavigationBar(
-          height: 65,
-          elevation: 0,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) {
-            setState(() {
-              _selectedIndex = index;
-            });
-          },
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: [
-            NavigationDestination(
-              icon: Icon(
-                Icons.home_outlined,
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.color
-                    ?.withOpacity(0.7),
-              ),
-              selectedIcon: Icon(
-                Icons.home,
-                color: Theme.of(context).primaryColor,
-              ),
-              label: 'Início',
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.history_outlined,
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.color
-                    ?.withOpacity(0.7),
-              ),
-              selectedIcon: Icon(
-                Icons.history,
-                color: Theme.of(context).primaryColor,
-              ),
-              label: 'Registros',
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.business_outlined,
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.color
-                    ?.withOpacity(0.7),
-              ),
-              selectedIcon: Icon(
-                Icons.business,
-                color: Theme.of(context).primaryColor,
-              ),
-              label: 'Empresas',
-            ),
-          ],
-        ),
+          NavigationDestination(
+            icon: Icon(Icons.history_outlined),
+            selectedIcon: Icon(Icons.history),
+            label: 'Registros',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.business_outlined),
+            selectedIcon: Icon(Icons.business),
+            label: 'Empresas',
+          ),
+        ],
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/time_record.dart';
 import 'package:intl/intl.dart';
+import 'add_retroactive_record_screen.dart';
 
 class RecordsScreen extends StatelessWidget {
   const RecordsScreen({super.key});
@@ -14,6 +15,18 @@ class RecordsScreen extends StatelessWidget {
         title: const Text('Registros'),
         centerTitle: true,
         elevation: 0,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AddRetroactiveRecordScreen(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.calendar_today),
+        label: const Text('Adicionar Registro'),
       ),
       body: Consumer<AppProvider>(
         builder: (context, provider, child) {

@@ -7,6 +7,7 @@ import '../models/time_record.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import 'package:intl/intl.dart';
+import 'package:geolocator/geolocator.dart';
 
 class AppProvider with ChangeNotifier {
   final LocationService _locationService = LocationService();
@@ -184,6 +185,51 @@ class AppProvider with ChangeNotifier {
     _timeRecords.removeWhere((r) => r.id == record.id);
     await _saveTimeRecords();
     notifyListeners();
+  }
+
+  Future<Position?> getCurrentLocation() async {
+    try {
+      return await _locationService.getCurrentLocation();
+    } catch (e) {
+      debugPrint('Erro ao obter localização: $e');
+      return null;
+    }
+  }
+
+  Future<void> addRetroactiveRecord(
+    Company company,
+    String type,
+    DateTime timestamp,
+    double latitude,
+    double longitude,
+  ) async {
+    try {
+      final record = TimeRecord(
+        id: timestamp.millisecondsSinceEpoch.toString(),
+        companyId: company.id,
+        companyName: company.name,
+        type: type,
+        timestamp: timestamp,
+        latitude: latitude,
+        longitude: longitude,
+      );
+
+      _timeRecords.add(record);
+      await _saveTimeRecords();
+
+      final formattedDate = DateFormat('dd/MM/yyyy').format(record.timestamp);
+      final formattedTime = DateFormat('HH:mm:ss').format(record.timestamp);
+
+      _notificationService.showSuccessNotification(
+        'Registro Retroativo Adicionado!',
+        '${type.toUpperCase()}\n${company.name}\n$formattedDate\n$formattedTime',
+      );
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Erro ao adicionar registro retroativo: $e');
+      rethrow;
+    }
   }
 }
 
